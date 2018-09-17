@@ -15,9 +15,76 @@
 
 using namespace std;
 
-void blur_GPU_CUDA(cv::Mat& input, cv::Mat& output)
+__global__ void blur_GPU_CUDA(unsigned char* input, unsigned char* output, int width, int height, int step)
 {
-    printf("On development");
+    const int ix = blockIdx.x * blockDim.x + threadIdx.x;
+    const int iy = blockIdx.y * blockDim.y + threadIdx.y;
+    int size = 9;
+
+    if ((ix < width) && (iy < height))
+    {
+        int texel, uvx, uvy;
+        int color_tid = iy * step + (3 * ix);
+        int red = 0;
+        int green = 0;
+        int blue = 0;
+
+        for (uvx = -1; uvx <= 1; uvx++)
+        {
+            for (uvy = -1; uvy <= 1; uvy++)
+            {
+                texel = color_tid + (uvx * 3) + (uvy * width * 3);
+                if (texel >= 0)
+                {
+                    red += input[texel];
+                    green += input[texel + 1];
+                    blue += input[texel + 2];
+                }
+            }
+        }
+
+        output[color_tid] = static_cast<unsigned char>(red / size);
+        output[color_tid + 1] = static_cast<unsigned char>(green / size);
+        output[color_tid + 2] = static_cast<unsigned char>(blue / size);
+    }
+    return;
+}
+
+void blur_GPU_CUDA_wrapper(const cv::Mat& input, cv::Mat& output)
+{
+    size_t bytes = input.step * input.rows;
+    unsigned char *d_input, *d_output;
+
+    // Allocate device memory
+    SAFE_CALL(cudaMalloc<unsigned char>(&d_input, bytes), "CUDA Malloc Failed");
+    SAFE_CALL(cudaMalloc<unsigned char>(&d_output, bytes), "CUDA Malloc Failed");
+
+    // Copy data from OpenCV input image to device memory
+    SAFE_CALL(cudaMemcpy(d_input, input.ptr(), bytes, cudaMemcpyHostToDevice), "CUDA Memcpy Host To Device Failed");
+
+    // Block size
+    int xBlock = 16;
+    int yBlock = 64;
+    const dim3 block(xBlock, yBlock);
+
+    // Grid size
+    const dim3 grid((int)ceil((float)input.cols / block.x), (int)ceil((float)input.rows/ block.y));
+    printf("blur_kernel<<<(%d, %d) , (%d, %d)>>>\n", grid.x, grid.y, block.x, block.y);
+
+    // Color Conversion
+    blur_GPU_CUDA <<<grid, block >>>(d_input, d_output, input.cols, input.rows, static_cast<int>(input.step));
+
+    // Synchronize to check for errors
+    SAFE_CALL(cudaDeviceSynchronize(), "Kernel Launch Failed");
+
+    // Copy back data from destination device memory
+    SAFE_CALL(cudaMemcpy(output.ptr(), d_output, bytes, cudaMemcpyDeviceToHost), "CUDA Memcpy Host To Device Failed");
+
+    // Free the device memory
+    SAFE_CALL(cudaFree(d_input), "CUDA Free Failed");
+    SAFE_CALL(cudaFree(d_output), "CUDA Free Failed");
+
+    return;
 }
 
 void blur_CPU_OMP(cv::Mat& input, cv::Mat& output)
@@ -56,6 +123,7 @@ void blur_CPU_OMP(cv::Mat& input, cv::Mat& output)
             }
         }
     }
+    return;
 }
 
 void blur_CPU_no_threads(cv::Mat& input, cv::Mat& output)
@@ -92,7 +160,8 @@ void blur_CPU_no_threads(cv::Mat& input, cv::Mat& output)
             output.at<cv::Vec3b>(i, j)[1] = (green / size);
             output.at<cv::Vec3b>(i, j)[2] = (blue / size);
         }
-    } 
+    }
+    return;
 }
 
 int main(int argc, char const *argv[])
@@ -152,7 +221,7 @@ int main(int argc, char const *argv[])
     for (i = 0; i < 20; i++)
     {
         start =  chrono::high_resolution_clock::now();
-        blur_GPU_CUDA(input, output3);
+        blur_GPU_CUDA_wrapper(input, output3);
         end =  chrono::high_resolution_clock::now();
         duration_ms = end - start;
         printf("Time passed (GPU CUDA): %f ms", duration_ms.count());
