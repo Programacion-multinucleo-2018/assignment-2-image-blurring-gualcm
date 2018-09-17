@@ -19,7 +19,7 @@ __global__ void blur_GPU_CUDA(unsigned char* input, unsigned char* output, int w
 {
     const int ix = blockIdx.x * blockDim.x + threadIdx.x;
     const int iy = blockIdx.y * blockDim.y + threadIdx.y;
-    int size = 9;
+    int size = 25;
 
     if ((ix < width) && (iy < height))
     {
@@ -29,9 +29,9 @@ __global__ void blur_GPU_CUDA(unsigned char* input, unsigned char* output, int w
         int green = 0;
         int blue = 0;
 
-        for (uvx = -1; uvx <= 1; uvx++)
+        for (uvx = -2; uvx <= 2; uvx++)
         {
-            for (uvy = -1; uvy <= 1; uvy++)
+            for (uvy = -2; uvy <= 2; uvy++)
             {
                 texel = color_tid + (uvx * 3) + (uvy * width * 3);
                 if (texel >= 0)
@@ -90,7 +90,7 @@ void blur_GPU_CUDA_wrapper(const cv::Mat& input, cv::Mat& output)
 void blur_CPU_OMP(cv::Mat& input, cv::Mat& output)
 {
     int i, j, tx, ty;
-    int size = 9;
+    int size = 25;
     #pragma omp parallel private(i, j, tx, ty) shared (input, output, size)
     {
         for (i = 0; i < input.rows; i++)
@@ -102,9 +102,9 @@ void blur_CPU_OMP(cv::Mat& input, cv::Mat& output)
                 int green = 0;
                 int blue = 0;
 
-                for (uvx = -1; uvx <= 1; uvx++)
+                for (uvx = -2; uvx <= 2; uvx++)
                 {
-                    for (uvy = -1; uvy <= 1; uvy++)
+                    for (uvy = -2; uvy <= 2; uvy++)
                     {
                         tx = uvx + i;
                         ty = uvy + j;
@@ -129,7 +129,7 @@ void blur_CPU_OMP(cv::Mat& input, cv::Mat& output)
 void blur_CPU_no_threads(cv::Mat& input, cv::Mat& output)
 {
     int i, j;
-    int size = 9;
+    int size = 25;
 
     for (i = 0; i < input.rows; i++)
     {
@@ -140,9 +140,9 @@ void blur_CPU_no_threads(cv::Mat& input, cv::Mat& output)
             int green = 0;
             int blue = 0;
 
-            for (uvx = -1; uvx <= 1; uvx++)
+            for (uvx = -2; uvx <= 2; uvx++)
             {
-                for (uvy = -1; uvy <= 1; uvy++)
+                for (uvy = -2; uvy <= 2; uvy++)
                 {
                     tx = uvx + i;
                     ty = uvy + j;
