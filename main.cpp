@@ -193,7 +193,7 @@ int main(int argc, char const *argv[])
         printf("Time passed (CPU NO THREADS): %f ms", duration_ms.count());
         average += duration_ms;
     }
-    printf("Average: %f ms", average);
+    printf("Average: %f ms", average / 20);
     average = 0.0;
 
     // Window Resizing
@@ -214,7 +214,7 @@ int main(int argc, char const *argv[])
         printf("Time passed (CPU OMP): %f ms", duration_ms.count());
         average += duration_ms;
     }
-    printf("Average: %f ms", average);
+    printf("Average: %f ms", average / 20);
     average = 0.0;
 
     // Start timer GPU CUDA
@@ -227,7 +227,7 @@ int main(int argc, char const *argv[])
         printf("Time passed (GPU CUDA): %f ms", duration_ms.count());
         average += duration_ms;
     }
-    printf("Average: %f ms", average);
+    printf("Average: %f ms", average / 20);
 
     return 0;
 }
