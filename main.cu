@@ -3,14 +3,14 @@
 /* https://en.wikipedia.org/wiki/Box_blur */
 /* compile: command */
 
-#include <iostream>
 #include <cstdio>
-#include <cmath>
-#include <chrono>
-#include <cstdlib>
+#include <iostream>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include "omp.h"
+#include <opencv2/imgproc/imgproc.hpp>
+#include <cmath>
+#include <chrono>
+#include "common.h"
 #include <cuda_runtime.h>
 
 using namespace std;
@@ -184,16 +184,16 @@ int main(int argc, char const *argv[])
 
     // Start timer CPU NO THREADS
     int i;
-    for (i = 0; i < 20; i++)
+    for (i = 0; i < 3; i++)
     {
-        auto start =  chrono::high_resolution_clock::now();
+        auto start = chrono::high_resolution_clock::now();
         blur_CPU_no_threads(input, output1);
-        auto end =  chrono::high_resolution_clock::now();
+        auto end = chrono::high_resolution_clock::now();
         chrono::duration<float, std::milli> duration_ms = end - start;
         printf("Time passed (CPU NO THREADS): %f ms", duration_ms.count());
-        average += duration_ms;
+        average += duration_ms.count();
     }
-    printf("Average: %f ms", average / 20);
+    printf("Average: %f ms", average / 3);
     average = 0.0;
 
     // Window Resizing
@@ -205,29 +205,29 @@ int main(int argc, char const *argv[])
     /* imshow("Output", output); */
 
     // Start timer CPU OMP
-    for (i = 0; i < 20; i++)
+    for (i = 0; i < 3; i++)
     {
-        start =  chrono::high_resolution_clock::now();
+        auto start =  chrono::high_resolution_clock::now();
         blur_CPU_OMP(input, output2);
-        end =  chrono::high_resolution_clock::now();
-        duration_ms = end - start;
+        auto end =  chrono::high_resolution_clock::now();
+        chrono::duration<float, std::milli> duration_ms = end - start;
         printf("Time passed (CPU OMP): %f ms", duration_ms.count());
-        average += duration_ms;
+        average += duration_ms.count();
     }
-    printf("Average: %f ms", average / 20);
+    printf("Average: %f ms", average / 3);
     average = 0.0;
 
     // Start timer GPU CUDA
-    for (i = 0; i < 20; i++)
+    for (i = 0; i < 3; i++)
     {
-        start =  chrono::high_resolution_clock::now();
+        auto start =  chrono::high_resolution_clock::now();
         blur_GPU_CUDA_wrapper(input, output3);
-        end =  chrono::high_resolution_clock::now();
-        duration_ms = end - start;
+        auto end =  chrono::high_resolution_clock::now();
+        chrono::duration<float, std::milli> duration_ms = end - start;
         printf("Time passed (GPU CUDA): %f ms", duration_ms.count());
-        average += duration_ms;
+        average += duration_ms.count();
     }
-    printf("Average: %f ms", average / 20);
+    printf("Average: %f ms", average / 3);
 
     return 0;
 }
